@@ -2,10 +2,10 @@ package dotenv
 
 import "testing"
 
-func Test_loadBytes(t *testing.T) {
+func Test_loadBytes_Nondestructive(t *testing.T) {
 	tests := []struct {
-		input string
-		want  bool
+		input          string
+		errShouldBeNil bool
 	}{
 		{"", true},
 		{`# comments only
@@ -16,12 +16,13 @@ ABC=123
 		{`HOME`, false},     // no matching value
 		{`HOME=abc`, false}, // HOME already exists
 	}
+
+	isDestructive := false
 	for _, test := range tests {
-		result := loadBytes([]byte(test.input))
-		is_valid := result == nil
-		if is_valid != test.want {
-			t.Logf("Input:\n%s\nResult:\n%v", test.input, result)
-			t.Fail()
+		err := loadBytes([]byte(test.input), isDestructive)
+		is_valid := err == nil
+		if is_valid != test.errShouldBeNil {
+			t.Errorf("Input:\n%s\nResult: %v", test.input, err)
 		}
 	}
 }

@@ -91,7 +91,8 @@ func run(ctx context.Context) error {
 		return err
 	}
 
-	if err := auth.ValidateAccess(); err != nil {
+	if _, err := auth.ValidateAccess(dotenv.GetTwitchConfig().AccessToken); err != nil {
+		logging.Println(err)
 		dotenv.DefaultServerConfig()
 		// run the server first to be ready for the callback
 		if err := runServer(logging, ctx); err != nil {

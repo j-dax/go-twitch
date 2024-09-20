@@ -4,28 +4,29 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"strings"
 )
 
-func set(key, value string) error {
+func set(key, value string, isDestructive bool) error {
 	if lookup, exists := os.LookupEnv(key); exists {
 		if lookup == value {
 			// the variable is the expected value, do not raise an error
 			return nil
 		}
-		return errors.New(fmt.Sprintf("Variable already exists, skipping %s", key))
-	} else {
-		err := os.Setenv(key, value)
-		if err != nil {
-			return err
+		if exists && !isDestructive {
+			return errors.New(fmt.Sprintf("Variable already exists, skipping %s", key))
 		}
+	}
+	err := os.Setenv(key, value)
+	if err != nil {
+		return err
 	}
 	return nil
 }
 
-func loadBytes(filebytes []byte) error {
+// Nondestructively load a .env into memory without overwriting the current environment
+func loadBytes(filebytes []byte, isDestructive bool) error {
 	lines := strings.Split(string(filebytes), "\n")
 	for _, line := range lines {
 		if !strings.HasPrefix(line, "#") && len(line) > 2 {
@@ -36,9 +37,8 @@ func loadBytes(filebytes []byte) error {
 
 			key := string(line[:equalIndex])
 			value := string(line[equalIndex+1:])
-			println(key, value)
 
-			if err := set(key, value); err != nil {
+			if err := set(key, value, isDestructive); err != nil {
 				return err
 			}
 		}
@@ -46,19 +46,29 @@ func loadBytes(filebytes []byte) error {
 	return nil
 }
 
+// Loads and overwrites variables from a .env file into the environment of the form:
+//
+// # comment
+// key=value
+func Overwrite(dotenvPath string) error {
+	filebytes, err := os.ReadFile(dotenvPath)
+	if err != nil {
+		return err
+	}
+	return loadBytes(filebytes, true)
+}
+
 // Loads a .env file into the environment of the form:
+//   - note that this does not override existing environment variables
+//
 // # comment
 // key=value
 func Load(dotenvPath string) error {
 	filebytes, err := os.ReadFile(dotenvPath)
 	if err != nil {
-		if os.IsExist(err) {
-			return err
-		}
-		log.Println(".env file not found... skipping")
-		return nil
+		return err
 	}
-	return loadBytes(filebytes)
+	return loadBytes(filebytes, false)
 }
 
 func Save(dotenvPath string, keys []string) error {

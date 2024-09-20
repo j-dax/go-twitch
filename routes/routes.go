@@ -12,6 +12,8 @@ import (
 	"strings"
 )
 
+var store NonceStore
+
 // Create a random string of length `n`
 func RandString(n int) string {
 	randString := make([]byte, n)
@@ -85,7 +87,7 @@ func handleAuthCallback(logger *log.Logger, nonceStore *NonceStore) http.Handler
 			exchangeResponse, err := auth.ExchangeCode(dotenv.GetTwitchConfig(), code, redirectUri)
 			if err != nil {
 				logger.Println("Failed to exchange auth code: ", err.Error())
-				http.Error(w, "Failed to exchange auth code for token", http.StatusInternalServerError)
+				http.Error(w, "Failed to exchange auth code for token. Try again.", http.StatusInternalServerError)
 				return
 			}
 
@@ -103,22 +105,11 @@ func handleAuthCallback(logger *log.Logger, nonceStore *NonceStore) http.Handler
 	)
 }
 
-func handleOk(logger *log.Logger) http.Handler {
-	return http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			logger.Println(r.URL.String())
-			w.Write([]byte("OK"))
-		},
-	)
-}
-
 func AddRoutes(
 	mux *http.ServeMux,
 	logger *log.Logger,
 ) {
-	store := &NonceStore{}
-	mux.Handle("/login", handleAuth(logger, store))
-	mux.Handle("/oauth2/authorize", handleAuthCallback(logger, store))
-	mux.Handle("/oauth2/token", handleOk(logger))
+	mux.Handle("/login", handleAuth(logger, &store))
+	mux.Handle("/oauth2/authorize", handleAuthCallback(logger, &store))
 	mux.Handle("/", http.NotFoundHandler())
 }

@@ -19,7 +19,7 @@ func TestExchangeCode(t *testing.T) {
 		w.Write([]byte(`{
 			"access_token": "test_access_token",
 			"token_type": "bearer",
-			"scope": "user:read:email",
+			"scope": ["user:read:email"],
 			"expires_in": 3600
 		}`))
 	})
@@ -51,7 +51,7 @@ func TestValidateAccess(t *testing.T) {
 			"client_id": "test_client_id",
 			"login": "test_login",
 			"user_id": "test_user_id",
-			"scope": "user:read:email"
+			"scope": ["user:read:email"]
 		}`))
 	})
 	server := httptest.NewServer(mux)
@@ -65,7 +65,7 @@ func TestValidateAccess(t *testing.T) {
 	if accessResponse == nil {
 		t.Error("validateAccess() returned a nil response object")
 	}
-	if accessResponse.UserId != "test_login" {
+	if accessResponse.Login != "test_login" {
 		t.Errorf("Expected login 'test_login', got %s", accessResponse.UserId)
 	}
 }
